@@ -78,7 +78,12 @@ def prepare_data(patient, df):
 
         # Combine new df with each other
         df_new = pd.merge_ordered(df_new, mean_var, on='date')
-
+       
+        
+    #Drop rows that contain less than 5 observations and columns that contain less than 10 observations
+    df_new = df_new.dropna(thresh=5).dropna(axis=1, thresh=10)
+    #Replace all NaN for 0
+    df_new = df_new.fillna(0)
     return df_new[df_new.mood.notnull()]
 
 
@@ -93,7 +98,7 @@ def main():
     for patient in patients:
         df_prepared = prepare_data(patient, df)
         df_prepared.to_csv('../results/normalized_normal/{}.csv'.format(patient), index_label=False, index=False)
-
+        print(df_prepared)
     # plot_mood(df, patients)
 
 
