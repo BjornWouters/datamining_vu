@@ -82,8 +82,8 @@ def prepare_data(patient, df):
         
     #Drop rows that contain less than 5 observations
     df_new = df_new.dropna(thresh=5)
-    #Replace all NaN for 0
-    df_new = df_new.fillna(0)
+    #Drop rows where there is no mood value and replace all NaN for 0
+    df_new = df_new.dropna(subset=['mood']).fillna(0)
     return df_new[df_new.mood.notnull()]
 
 
@@ -99,7 +99,6 @@ def main():
         df_prepared = prepare_data(patient, df)
         df_prepared.to_csv('../results/normalized_normal/{}.csv'.format(patient), index_label=False, index=False)
     # plot_mood(df, patients)
-
-
+        print(df_prepared)
 if __name__ == '__main__':
     main()
