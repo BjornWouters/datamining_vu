@@ -6,8 +6,9 @@ import glob
 import pandas as pd
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.linear_model import ElasticNetCV
-from sklearn.metrics import r2_score
-
+from sklearn.neural_network import MLPRegressor
+from sklearn.metrics import roc_curve
+ 
 def import_data(ID):
     df = pd.read_csv(ID, index_col=0)
     return df
@@ -25,6 +26,7 @@ def split_data(sample_data, test_set):
    y = sample_data.mood
    X_test = test_set.loc[:,"activity"::]
    y_test = test_set.mood
+   
    tscv = TimeSeriesSplit(max_train_size=None, n_splits=11)
    #NOG BEKIJKEN, raise KeyError('%s not in index' % objarr[mask]) KeyError: '[ 0  1  2  3  4  5  6  7  8  9 10 11 12 13] not in index'
    #for train_index, test_index in tscv.split(X):
@@ -34,27 +36,27 @@ def split_data(sample_data, test_set):
        
    #Nog bekijken --> NaN pikt 'ie niet, alle NaN veranderen naar 0 kan lijkt mij niet overal?
    prediction_elasticnet = elasticnet(X,y,X_test, y_test)
-   #recurrent_model = recurrent_neural_network(X,y)
+   prediction_recurrent_nn = recurrent_neural_network(X,y, X_test, y_test)
 
 def benchmark(test_set, training_set, y_prediction, y_true):
     y_true.append(test_set.mood[-1])
     y_prediction.append(training_set[-1:].mood[-1])
     return y_prediction, y_true
 
-
 def elasticnet(X,y,X_test,y_test): #heb nu even cv gedaan in de elasticnet, kunnen we veradenren als timeseriesspplit werkt (=3x CV verwijderen)
     regr = ElasticNetCV(cv=5, random_state=0)   
     y_prediction_elasticnet = regr.fit(X, y).predict(X_test)
-
+    #fpr, tpr = roc_curve(y_test, y_prediction_elasticnet, sample_weight=None, drop_intermediate=True)
     return y_prediction_elasticnet
 
-def recurrent_neural_network(X,y):
-    #
-    # Multi-layer Perceptron implementeren?
-    #
-    return #model?
+def recurrent_neural_network(X,y, X_test, y_test):
+    regr = MLPRegressor(hidden_layer_sizes=(100,))
+    regr.fit(X,y)
+    y_prediction_nn = regr.predict(X_test)
+    return y_prediction_nn
 
 #main program 
+#find all files with prepared data
 os.chdir( '/Users/amber/Desktop/data_mining/results' )
 filenames = glob.glob( '*/**.csv' )
 benchmark_y_prediction = []
