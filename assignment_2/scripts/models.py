@@ -10,40 +10,48 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import cross_val_score
 from xgboost import XGBClassifier
 
 def import_data():
-    #training_set = pd.read_csv(ID, index_col=0)
-    #test_set = pd.read_csv(ID, index_col=0)   
-    #X =
-    #y =
-    #X_test =
-    #y_test =
-    return X_train, y_train, X_test, y_test
+    training_set = pd.read_csv("prep_small_train.csv", sep=',')
+    #test_set = pd.read_csv("prep_small_train.txt", sep='\t') 
+    X = training_set.loc[:, "prop_country_id"::]
+    y = training_set.prop_id
+    global N_FEATURES
+    N_FEATURES = len(X.columns)
+
+    return X, y
 
 def split_validation_set(X, y):
-    X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size=0.1)
-    benchmark()
-    GBM(X_train, X_validation, y_train, y_validation)
+    X_train, X_validation, y_train, y_validation = train_test_split(X, y, test_size=0.5)
+    #benchmark()
+    #GBM(X_train, X_validation, y_train, y_validation)
     RF(X_train, X_validation, y_train, y_validation)
-    lambdamart(X_train, X_validation, y_train, y_validation)
+    #lambdamart(X_train, X_validation, y_train, y_validation)
     
 def benchmark():
     return
 
 def GBM(X_train, X_validation, y_train, y_validation):
-    clf = GradientBoostingClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0).fit(X_train, y_train)
+    clf = GradientBoostingClassifier()
     clf.fit(X_train, y_train)
-    clf.score(X_test, y_test) 
-    clf.feature_importances_
-    mean_accuracy = clf.score(X_test, y_test)
+    #clf.score(X_validation, y_validation) 
+    #clf.feature_importances_
+    #mean_accuracy = clf.score(X_validation, y_validation)
     return 
 
 def RF(X_train, X_validation, y_train, y_validation):
-    clf = RandomForestClassifier(max_depth=2, random_state=0)
+    global N_FEATURES
+    clf = RandomForestClassifier(max_depth=2, min_samples_split=2, random_state=None, max_features='sqrt', n_jobs=-1 )
     clf.fit(X_train, y_train)
     print(clf.feature_importances_)
-    mean_accuracy = clf.score(X_test, y_test)
+    output = clf.predict(X_validation)
+    df = pd.DataFrame({'ids': output})
+    pd.value_counts(df['ids']).plot.bar()
+   
+    mean_accuracy = clf.score(X_validation, y_validation)
+    print(mean_accuracy)
     return
  
 def lambdamart(X_train, X_validation, y_train, y_validation):
@@ -55,6 +63,14 @@ def lambdamart(X_train, X_validation, y_train, y_validation):
     return
     
 def nDCG():
+    #nodig: booked, clicked, per srch_id een lijstje met hotels
+    #matrix srch_id, prop_id, score (clicked=1, booked=5), discounted score (score/position)
+    #take sum of discounted score
+    #normalize the score by dividing the total for this answer by the maximum for this query
+    #creating the best answer is the properties sorted first by booking_boolean and then click_boolean
+    #final nDCG = our score / best score
+    #take the average of all the predicted srch_id's
+    
     return
 
 def submission_file():
@@ -62,5 +78,5 @@ def submission_file():
         f.write("\n".join("blabla"))
     
 # main program
-X, y, X_test, y_test = import_data()
+X, y = import_data()
 split_validation_set(X, y)
