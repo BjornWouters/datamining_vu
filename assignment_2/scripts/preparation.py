@@ -20,13 +20,16 @@ def import_data(filename):
         'click_bool', 'booking_bool'
     ]
     df = pd.read_csv(filename, usecols=fields)
-    return df
+    fields1 = ['srch_id'] + fields
+    df1 = pd.read_csv(filename, usecols=fields1).fillna(0)
+    return df, df1
 
 
 def main():
-    df = import_data('../data/small_train.csv')
+    df, df1 = import_data('training_set_VU_DM_2014.csv')
+    df1.to_csv('predict_dataset.csv')
     df = normalize_values(df)
-    df.to_csv('../results/prepared_small_train.csv')
+    df.to_csv('prepared_train.csv')
 
 
 if __name__ == '__main__':
