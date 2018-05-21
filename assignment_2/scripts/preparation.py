@@ -9,6 +9,10 @@ def normalize_values(df):
         averaged_df[name] = ((averaged_df[name] -
                               averaged_df[name].mean()) /
                              averaged_df[name].std(ddof=0))
+
+    # Don't use srch_ids where there is no booking realized
+    averaged_df = averaged_df[averaged_df.booking_bool != 0]
+
     return averaged_df
 
 
@@ -20,16 +24,16 @@ def import_data(filename):
         'click_bool', 'booking_bool'
     ]
     df = pd.read_csv(filename, usecols=fields)
-    fields1 = ['srch_id'] + fields
+    fields1 = ['srch_id', 'prop_id', 'click_bool', 'booking_bool']
     df1 = pd.read_csv(filename, usecols=fields1).fillna(0)
     return df, df1
 
 
 def main():
-    df, df1 = import_data('training_set_VU_DM_2014.csv')
-    df1.to_csv('predict_dataset.csv')
+    df, df1 = import_data('../data/training_set_VU_DM_2014.csv')
+    df1.to_csv('../results/predict_dataset.csv', index=False)
     df = normalize_values(df)
-    df.to_csv('prepared_train.csv')
+    df.to_csv('../results/prepared_train.csv')
 
 
 if __name__ == '__main__':

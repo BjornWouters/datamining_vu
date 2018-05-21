@@ -85,7 +85,7 @@ def z_score_corr(value, calculation, i): # Normalise the data by deviding by z-s
 
 
 def write_file(dict): # Write all new data to file
-    file = open('prep_small_train.csv', 'w')
+    file = open('../results/prep_small_train.csv', 'w')
     file.write("prop_id" + "," + "prop_country_id" + "," + "prop_starrating" + "," + "prop_review_score" + "," + "prop_brand_bool" + "," + "prop_location_score1" + "," + "prop_location_score2" + "," + "prop_log_historical_price" + "," + "position" + "," + "price_usd" + "," + "promotion_flag" + "\n")
     for key in sorted(dict.keys()):
         line = ','.join(dict[key])
@@ -93,10 +93,11 @@ def write_file(dict): # Write all new data to file
 
 
 def main():
-    file = import_data('small_train.csv')   # Import data
+    file = import_data('../data/small_train.csv')   # Import data
     booking_dict, calc_list = check_booking(file)   # Delete non-booked searches
     prop_dict = property_data(booking_dict, calc_list)  # Sort by hotel and normalise with z-score
     write_file(prop_dict)   # Write result to file
+
 
 if __name__ == '__main__':
     main()
