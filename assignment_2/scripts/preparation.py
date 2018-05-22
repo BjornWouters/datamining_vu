@@ -29,7 +29,7 @@ def import_data(filename):
     return df, df1
 
 def import_test_data(filename):
-    fields = ['srch_id','prop_review_score','prop_brand_bool', 'prop_location_score1', 'prop_location_score2','prop_log_historical_price', 'price_usd', 'promotion_flag']
+    fields = ['srch_id','prop_id', 'prop_review_score','prop_brand_bool', 'prop_location_score1', 'prop_location_score2','prop_log_historical_price', 'price_usd', 'promotion_flag']
     df = pd.read_csv(filename, usecols=fields).fillna(0)
     return df
 
