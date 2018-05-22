@@ -28,10 +28,16 @@ def import_data(filename):
     df1 = pd.read_csv(filename, usecols=fields1).fillna(0)
     return df, df1
 
+def import_test_data(filename):
+    fields = ['srch_id','prop_review_score','prop_brand_bool', 'prop_location_score1', 'prop_location_score2','prop_log_historical_price', 'price_usd', 'promotion_flag']
+    df = pd.read_csv(filename, usecols=fields).fillna(0)
+    return df
 
 def main():
     df, df1 = import_data('../data/training_set_VU_DM_2014.csv')
+    test_set = import_test_data('../data/test_set_VU_DM_2014.csv')
     df1.to_csv('../results/predict_dataset.csv', index=False)
+    test_set.to_csv('../results/test_set.csv', index=False)
     df = normalize_values(df)
     df.to_csv('../results/prepared_train.csv')
 
