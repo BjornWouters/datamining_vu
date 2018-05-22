@@ -12,17 +12,15 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingRegressor
 
-
-
 def import_data():
     training_set = pd.read_csv("../results/prepared_train.csv", sep=',')
     original_dataset = pd.read_csv("../results/predict_dataset.csv", sep=',')
-    dropped_features = ['prop_starrating', 'click_bool', 'booking_bool']
+    dropped_features = ['prop_starrating', 'position', 'click_bool', 'booking_bool']
     X = training_set.drop(dropped_features, axis=1)
     y = training_set.booking_bool
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
-
-    return X_train, y_train, X_test, original_dataset
+    X_train, X_validation, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+    test_set = pd.read_csv("../results/test_set.csv", sep=',', nrows=100)
+    return X_train, y_train, X_validation, original_dataset, test_set
 
 
 def GBM(X, y):
@@ -60,7 +58,6 @@ def predictions(original_dataset, test_set, clfrf, clfgbm):
         predictionsgbm.append(outputgbm)
         if i == 2000:
             break
-    print(predictionsrf)
     rf='RF'
     gbm='GBM'
     nDCG_RF = nDCG(predictionsrf, used_properties, original_dataset, rf)
@@ -146,18 +143,55 @@ def max_scores(df):
     return max_df
 
 
-def submission_file():
-    with open("predictions.csv", "w+") as f:
-        f.write("\n".join("blabla"))
+def predict_test_set(clf, test_set):
+    srch_ids = test_set.srch_id.unique()
+    predictions_test_set= list()
+    used_properties = list()
+    dropped_features = ['prop_id', 'srch_id']
+    for i, id in enumerate(srch_ids):
+        listings = test_set[test_set.srch_id == id]
+        test_row = test_set[test_set.prop_id.isin(list(listings.prop_id))]
+        used_properties.append(test_row.prop_id)
+        test_row = test_row.drop(dropped_features, axis=1)
+        if len(test_row) == 0:
+            continue
 
+        output_test_set = clf.predict(test_row)
+        predictions_test_set.append(output_test_set)
+        if i == 100:
+            break
+    submission_file(predictions_test_set, used_properties, test_set)
+    
+    return
+
+def submission_file(predictions, used_properties, test_set):
+    srch_ids = test_set.srch_id.unique()
+    file = pd.DataFrame()
+    #df2 = pd.DataFrame(columns=df1['Column header'])
+    for i, id in enumerate(srch_ids):
+        listings = test_set[test_set.srch_id == id]
+        listings = listings[listings.prop_id.isin(list(used_properties[i]))]
+        predicted_index = np.argsort(predictions[i])
+        if len(listings) != len(predicted_index):
+            break
+        listings['predicted_index'] = predicted_index
+        file = file.append(listings.sort_values(by=['predicted_index']))
+        if i == 100:
+            break
+    print(file)
+    print(listings.columns)
+    file.columns = listings.columns
+    header = ['srch_id', 'prop_id']
+    file.to_csv('../results/predictions_group_26.csv', sep=',', index=False, columns=header)
 
 # main program
-X_train, y_train, X_test, original_dataset = import_data()
+X_train, y_train, X_validation, original_dataset, test_set = import_data()
 clfgbm = GBM(X_train.drop('prop_id', axis=1), y_train)
 clfrf = RF(X_train.drop('prop_id', axis=1), y_train)
-nDCG_RF, nDCG_GBM = predictions(original_dataset, X_test, clfrf, clfgbm)
+nDCG_RF, nDCG_GBM = predictions(original_dataset, X_validation, clfrf, clfgbm)
 
-#if nDCG_RF > nDCG_GBM:
-#    submission_file(nDCG_RF)
-#else:
-#    submission_file(nDCG_GBM)
+if nDCG_RF > nDCG_GBM:
+    predict_test_set(clfrf, test_set)
+else:
+    predict_test_set(clfgbm, test_set)
+#predict test set with the best model
