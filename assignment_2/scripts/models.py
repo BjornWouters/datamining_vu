@@ -10,90 +10,73 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import GradientBoostingClassifier
-from xgboost import XGBClassifier
+from sklearn.ensemble import GradientBoostingRegressor
+
 
 
 def import_data():
     training_set = pd.read_csv("../results/prepared_train.csv", sep=',')
     original_dataset = pd.read_csv("../results/predict_dataset.csv", sep=',')
-    # training_set = pd.read_csv("prep_small_train.csv", sep=',')
-    # test_set = pd.read_csv("prep_small_train.txt", sep='\t')
     dropped_features = ['prop_starrating', 'click_bool', 'booking_bool']
     X = training_set.drop(dropped_features, axis=1)
     y = training_set.booking_bool
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.33, random_state=42)
-    global N_FEATURES
-    N_FEATURES = len(X.columns)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 
     return X_train, y_train, X_test, original_dataset
 
 
-def benchmark():
-    return
-
-
-"""
-def GBM(X_train, X_validation, y_train, y_validation):
-    clf = GradientBoostingClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0)
-    clf.fit(X_train, y_train)
-    clf.score(X_validation, y_validation) 
-    print(clf.feature_importances_)
-    return 
-"""
+def GBM(X, y):
+    clf = GradientBoostingRegressor(random_state=None, n_estimators=1500, max_depth=2, min_samples_split=2, learning_rate=0.01, loss='quantile', alpha=0.7)
+    clf.fit(X, y)
+    print('Feature importances GBM: {}'.format(clf.feature_importances_))
+    
+    return clf
 
 
 def RF(X, y):
-    global N_FEATURES
-    clf = RandomForestRegressor(max_depth=2, min_samples_split=2, random_state=None,
-                                 max_features='sqrt', n_jobs=1)
+    clf = RandomForestRegressor(n_estimators=10, max_depth=None, min_samples_split=2, random_state=4, max_features='sqrt', n_jobs=1)
     clf.fit(X, y)
-    # print(clf.feature_importances_)
-
+    print('Feature importances RF: {}'.format(clf.feature_importances_))
+    
     return clf
 
 
-def lambdamart(X, y):
-    clf = XGBClassifier(rank='ndcg')
-    clf.fit(X, y)
-
-    return clf
-
-
-def predictions(original_dataset, test_set, clfrf):
+def predictions(original_dataset, test_set, clfrf, clfgbm):
     srch_ids = original_dataset.srch_id.unique()
     predictionsrf = list()
-    predictionslm = list()
+    predictionsgbm = list()
     used_properties = list()
     for i, id in enumerate(srch_ids):
         listings = original_dataset[original_dataset.srch_id == id]
         test_row = test_set[test_set.prop_id.isin(list(listings.prop_id))]
         used_properties.append(test_row.prop_id)
         test_row = test_row.drop('prop_id', axis=1)
-
         if len(test_row) == 0:
             continue
 
         outputrf = clfrf.predict(test_row)
-        # outputlm = clflm.predict(test_row)
+        outputgbm = clfgbm.predict(test_row)
         predictionsrf.append(outputrf)
-        # predictionslm.append(outputlm)
+        predictionsgbm.append(outputgbm)
         if i == 2000:
             break
-    nDCG(predictionsrf, used_properties, original_dataset)
+    print(predictionsrf)
+    rf='RF'
+    gbm='GBM'
+    nDCG_RF = nDCG(predictionsrf, used_properties, original_dataset, rf)
+    nDCG_GBM = nDCG(predictionsgbm, used_properties, original_dataset, gbm)
 
-    return
+    return nDCG_RF, nDCG_GBM
 
 
-def nDCG(predictionsrf, used_properties, original_dataset):
+def nDCG(predictions, used_properties, original_dataset, method):
     random_score_list = list()
     final_score_list = list()
     srch_ids = original_dataset.srch_id.unique()
     for i, id in enumerate(srch_ids):
         listings = original_dataset[original_dataset.srch_id == id]
         listings = listings[listings.prop_id.isin(list(used_properties[i]))]
-        predicted_index = np.argsort(predictionsrf[i])
+        predicted_index = np.argsort(predictions[i])
         if len(listings) != len(predicted_index):
             break
         listings['predicted_index'] = predicted_index
@@ -118,20 +101,11 @@ def nDCG(predictionsrf, used_properties, original_dataset):
         if i == 2000:
             break
 
-    print('Final score: {}'.format(np.mean(final_score_list)))
+    mean_final_scores = np.mean(final_score_list)
+    print('Final score {}: {}'.format(method, mean_final_scores))
     print('Final score (randomized): {}'.format(np.mean(random_score_list)))
 
-    # matrix = pd.concat([click_and_booking_bool, prediction])
-    # print(matrix)
-    # matrix srch_id, prop_id, score (clicked=1, booked=5), discounted score (score/position)
-    # matrix["discounted_score"] = matrix.
-    # take sum of discounted score
-    # normalize the score by dividing the total for this answer by the maximum for this query
-    # creating the best answer is the properties sorted first by booking_boolean and then click_boolean
-    # final nDCG = our score / best score
-    # take the average of all the predicted srch_id's
-
-    return
+    return mean_final_scores
 
 
 def calculate_score(listings):
@@ -167,8 +141,8 @@ def max_scores(df):
         score_list.append(score)
         if i == 5:
             break
-
     max_df = pd.DataFrame(data={'srch_id': id_list, 'score': score_list})
+    
     return max_df
 
 
@@ -179,8 +153,11 @@ def submission_file():
 
 # main program
 X_train, y_train, X_test, original_dataset = import_data()
-# benchmark()
-# GBM(X,y)
+clfgbm = GBM(X_train.drop('prop_id', axis=1), y_train)
 clfrf = RF(X_train.drop('prop_id', axis=1), y_train)
-# clflm = lambdamart(X, y)
-predictions(original_dataset, X_test, clfrf)
+nDCG_RF, nDCG_GBM = predictions(original_dataset, X_test, clfrf, clfgbm)
+
+#if nDCG_RF > nDCG_GBM:
+#    submission_file(nDCG_RF)
+#else:
+#    submission_file(nDCG_GBM)
