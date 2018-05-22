@@ -1,0 +1,30 @@
+!!Data_Type: int/float
+!!Missing: what to do with missing values?
+!!	copy: copy from the same prop_id
+!!	del: delete sample
+!!	lowest: take lowest score over other values for that prop_id
+!!	highest: take highest score over other values for that prop_id
+!!	0: set to 0
+!!	other: formula for calculating value
+!!Compiling: what to do to compile all samples into a prop_id feature?
+!!	same: should be the same as the other values for that prop_id
+!!	av: take average
+!!	del: delete sample
+!!	sum: sum up all values
+
+Feature,Data_Type,Missing,Compiling
+prop_country_id,int,copy,same
+prop_id,int,del,same
+prop_starring,int,lowest,av
+prop_review_score,float,lowest,av
+prop_brand_bool,int,copy,same
+prop_location_score1,float,lowest,av
+prop_location_score2,float,lowest,av
+prop_log_historical_price,float,lowest,av
+position,int,del,del
+price_usd,float,highest,av
+promotion_flag,int,copy,same
+click_bool,int,0,sum
+booking_bool,int,0,sum
+starring_difference,int,visitor_hist_staring-prop_starring,av
+price_difference,float,log(visitor_hist_adr_usd)-prop_log_historical_price,av
