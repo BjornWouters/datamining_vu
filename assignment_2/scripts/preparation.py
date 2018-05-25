@@ -64,18 +64,18 @@ def feature_selection(df):
 
 
 def main():
-    # df, df1 = import_data('../data/kaggle_train.csv')
-    test_set = import_test_data('../data/kaggle_test.csv')
+    df, df1 = import_data('../data/training_set_VU_DM_2014.csv')
+    test_set = import_test_data('../data/test_set_VU_DM_2014.csv')
 
-    # df = feature_selection(df)
-    # df = normalize_values(df)
+    df = feature_selection(df)
+    df = normalize_values(df)
 
     test_set = feature_selection(test_set)
     test_set = normalize_values(test_set, test=True)
 
-    test_set.to_csv('../results/kaggle_test.csv', index=False)
-    # df.to_csv('../results/kaggle_train.csv')
-    # df1.to_csv('../results/kaggle_dataset.csv', index=False)
+    test_set.to_csv('../results/test_set.csv', index=False)
+    df.to_csv('../results/prepared_train.csv')
+    df1.to_csv('../results/predict_dataset.csv', index=False)
 
 
 if __name__ == '__main__':
